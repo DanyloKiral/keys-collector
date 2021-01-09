@@ -4,8 +4,6 @@ import akka.stream.scaladsl.{Flow, Sink}
 import dto.ExposedKeyData
 
 object DataCollectorSink {
-  val dbConnection = ""
-
   def apply(): Sink[ExposedKeyData, Any] =
     Flow[ExposedKeyData]
         // transform data for db insert here
