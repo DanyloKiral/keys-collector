@@ -2,7 +2,7 @@ package dto
 
 // todo: add here more properties (raw data from GitHub API)
 class RawKeySearchResult(val lineNum: Int,
-                         val keyService: String) {
+                         val service: String) {
 
-  override def toString: String = s"RawKeySearchResult: {lineNum: $lineNum, keyService: $keyService}"
+  override def toString: String = s"RawKeySearchResult: {lineNum: $lineNum, keyService: $service}"
 }

@@ -17,3 +17,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster-typed" % AkkaVersion,
   "com.typesafe.akka" %% "akka-stream-typed" % AkkaVersion
 )
+
+libraryDependencies += "com.lightbend.akka" %% "akka-stream-alpakka-slick" % "2.0.2"
+libraryDependencies += "org.postgresql" % "postgresql" % "9.4-1206-jdbc42"

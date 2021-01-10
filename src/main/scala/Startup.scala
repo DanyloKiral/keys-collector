@@ -9,13 +9,24 @@ import akka.http.scaladsl.server.Directives._
 import GraphDSL.Implicits._
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
+import com.typesafe.config.ConfigFactory
+import services.{DataService, GitHubIntegrationService}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
 object Startup extends App {
-  implicit val system = ActorSystem()
+  val config = ConfigFactory.load()
+  implicit val system = ActorSystem("keys-collector", config)
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
   implicit val materializer: Materializer = Materializer(system)
+
+  system.registerOnTermination(() => {
+    println("Terminating actor system")
+    GitHubIntegrationService.terminate()
+    DataService.closeConnection()
+  })
+
+  DataService.initialize()
 
   val flowGraph = GraphDSL.create[FlowShape[RawKeySearchResult, TextMessage]]() { implicit graphBuilder =>
     val IN = graphBuilder.add(Broadcast[RawKeySearchResult](1))
@@ -23,7 +34,7 @@ object Startup extends App {
     val OUT = graphBuilder.add(Merge[TextMessage](1))
 
     IN ~> KeySearchFlow() ~> PARSED_DATA ~> ConvertToMessageFlow() ~> OUT
-    PARSED_DATA ~> DataCollectorSink()
+                             PARSED_DATA ~> DataCollectorSink()
 
     FlowShape(IN.in, OUT.out)
   }
