@@ -1,5 +1,5 @@
 import akka.stream.{FlowShape, Materializer}
-import akka.stream.scaladsl.{Broadcast, BroadcastHub, Flow, GraphDSL, Keep, Merge, Sink, Source, Zip, ZipLatest, ZipWith}
+import akka.stream.scaladsl.{Broadcast, BroadcastHub, Flow, GraphDSL, Keep, Merge, Source, ZipLatest}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import dto.{ExposedKeyData, RawKeySearchResult}
@@ -9,14 +9,12 @@ import akka.http.scaladsl.server.Directives._
 import GraphDSL.Implicits._
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
-import com.typesafe.config.ConfigFactory
 import services.{DataService, GitHubIntegrationService}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
 object Startup extends App {
-  val config = ConfigFactory.load()
-  implicit val system = ActorSystem("keys-collector", config)
+  implicit val system = ActorSystem()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
   implicit val materializer: Materializer = Materializer(system)
 
