@@ -1,6 +1,6 @@
 package integration
 
-import akka.stream.{Materializer, OverflowStrategy}
+import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import constants.Constants
 import dto.RawKeySearchResult

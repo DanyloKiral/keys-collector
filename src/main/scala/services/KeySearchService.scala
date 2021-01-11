@@ -11,6 +11,6 @@ object KeySearchService {
 
   def parse(record: RawKeySearchResult): ExposedKeyData = {
     // test parsing
-    new ExposedKeyData(record.lineNum * 2, record.keyService, Random.alphanumeric.take(10).mkString(""))
+    new ExposedKeyData(record.lineNum * 2, Random.alphanumeric.take(10).mkString(""), record.service)
   }
 }

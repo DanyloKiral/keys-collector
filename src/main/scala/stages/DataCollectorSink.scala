@@ -2,6 +2,7 @@ package stages
 
 import akka.stream.scaladsl.{Flow, Sink}
 import dto.ExposedKeyData
+import services.DataService
 
 object DataCollectorSink {
   def apply(): Sink[ExposedKeyData, Any] =
@@ -9,5 +10,5 @@ object DataCollectorSink {
         // transform data for db insert here
         .map(data => data)
         // todo: use Slick.sink
-        .to(Sink.foreach(data => println(s"Collect data: $data")))
+        .to(DataService.insertToDbSink())
 }
