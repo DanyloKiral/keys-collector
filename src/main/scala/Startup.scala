@@ -1,48 +1,65 @@
-import akka.stream.{FlowShape, Materializer}
-import akka.stream.scaladsl.{Broadcast, BroadcastHub, Flow, GraphDSL, Keep, Merge, Source, ZipLatest}
+import akka.stream.{FlowShape, Materializer, SourceShape}
+import akka.stream.scaladsl._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
-import dto.{ExposedKeyData, RawKeySearchResult}
-import integration.GitHubKeysSource
-import stages.{ConvertToMessageFlow, DataCollectorSink, FilterBySubscriptionFlow, KeySearchFlow, MessageToStringFlow}
+import dto._
+import integration.{GitHubFetchFileFlow, GitHubSearchSource}
+import stages.{ConvertToMessageFlow, DataCollectorSink, FilterBySubscriptionFlow, FlatMapUniqueSearchResultFlow, KeySearchFlow, MessageToStringFlow, ParseResponseFlow}
 import akka.http.scaladsl.server.Directives._
 import GraphDSL.Implicits._
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import services.{DataService, GitHubIntegrationService}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.util.Try
 
 object Startup extends App {
   implicit val system = ActorSystem()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
   implicit val materializer: Materializer = Materializer(system)
+  // todo: setup max requests per second?
+  implicit val httpPool = Http().superPool[NotUsed]()
+  implicit val mapper: ObjectMapper = new ObjectMapper().registerModule(DefaultScalaModule)
 
   system.registerOnTermination(() => {
     println("Terminating actor system")
-    GitHubIntegrationService.terminate()
     DataService.closeConnection()
   })
 
   DataService.initialize()
 
-  val dataConsumptionGraph = GraphDSL.create[FlowShape[RawKeySearchResult, ExposedKeyData]]() { implicit graphBuilder =>
-    val IN = graphBuilder.add(Broadcast[RawKeySearchResult](1))
+  val dataConsumptionGraph = GraphDSL.create[FlowShape[Try[HttpResponse], ExposedKeyData]]() { implicit graphBuilder =>
+    val IN = graphBuilder.add(Broadcast[Try[HttpResponse]](1))
+    val SEARCH_RESPONSE = graphBuilder.add(Broadcast[GitHubApiSearchItem](2))
+    val FILE_DATA = graphBuilder.add(ZipWith[GitHubApiSearchItem, GitHubApiFile, FileWithKeyData]((i, f) => new FileWithKeyData(i, f)))
+    val ParseSearch = graphBuilder.add(ParseResponseFlow[GitHubApiSearchResponse](1))
+    val ParseFile = graphBuilder.add(ParseResponseFlow[GitHubApiFile]())
+    val FlatMap = graphBuilder.add(FlatMapUniqueSearchResultFlow())
     val PARSED_DATA = graphBuilder.add(Broadcast[ExposedKeyData](2))
+    val FetchFile = graphBuilder.add(GitHubFetchFileFlow())
     val OUT = graphBuilder.add(Merge[ExposedKeyData](1))
 
-    IN ~> KeySearchFlow() ~> PARSED_DATA ~> OUT
-                             PARSED_DATA ~> DataCollectorSink()
+
+    IN ~> ParseSearch ~> FlatMap ~> SEARCH_RESPONSE ~>                           FILE_DATA.in0
+                                    SEARCH_RESPONSE ~> FetchFile ~> ParseFile ~> FILE_DATA.in1
+
+
+    FILE_DATA.out ~> KeySearchFlow() ~> PARSED_DATA ~> OUT
+                                        PARSED_DATA ~> DataCollectorSink()
 
     FlowShape(IN.in, OUT.out)
   }
 
-  val dataStream = GitHubKeysSource()
+  val dataStream = GitHubSearchSource()
     .via(dataConsumptionGraph)
     .toMat(BroadcastHub.sink)(Keep.right)
     .run
 
-  val socketSubscriptionGraph = GraphDSL.create[FlowShape[Message, TextMessage]]() { implicit graphBuilder =>
+    val socketSubscriptionGraph = GraphDSL.create[FlowShape[Message, TextMessage]]() { implicit graphBuilder =>
     import GraphDSL.Implicits._
     val IN = graphBuilder.add(Broadcast[Message](1))
     val DATA_WITH_SUBSCR = graphBuilder.add(ZipLatest[String, ExposedKeyData]())

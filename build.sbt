@@ -18,5 +18,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream-typed" % AkkaVersion
 )
 
+libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.6.9"
 libraryDependencies += "com.lightbend.akka" %% "akka-stream-alpakka-slick" % "2.0.2"
 libraryDependencies += "org.postgresql" % "postgresql" % "9.4-1206-jdbc42"

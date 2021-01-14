@@ -1,38 +1,27 @@
 package services
 
-import akka.stream.scaladsl.SourceQueueWithComplete
-import constants.Constants
-import dto.RawKeySearchResult
-
-import scala.concurrent.ExecutionContext
+import akka.http.scaladsl.model.Uri.Query
+import akka.http.scaladsl.model.headers.{Accept, Authorization, BasicHttpCredentials}
+import akka.http.scaladsl.model.{HttpMethods, HttpRequest, MediaRange, Uri}
+import constants.{Configs, Constants}
 
 object GitHubIntegrationService {
-  var sourceAlive: Boolean = true
 
-  def runIntegration(queue: SourceQueueWithComplete[RawKeySearchResult]): Unit = {
-    implicit val executionContext: ExecutionContext = ExecutionContext.global
-
-    // just test data generation
-    queue.offer(new RawKeySearchResult(0, "init"))
-      .andThen(_ => {
-        var i: Int = 1
-
-        while (sourceAlive) {
-          Constants.KeyServices.foreach(service => {
-          val newItem = new RawKeySearchResult(i, service)
-
-          // push new value to source with queue.offer method
-          queue.offer(newItem)
-          Thread.sleep(2000)
-        })
-
-        i += 1
-      }
-    })
-  }
-
-  def terminate(): Unit = {
-    sourceAlive = false
-    println("Terminated GitHub integration")
+  // todo: files duplication
+  def formSearchHttpRequest(): HttpRequest = {
+    HttpRequest(
+      method = HttpMethods.GET,
+      uri = Uri(s"${Configs.GitHubApiRoot}/${Constants.GitHubSearchCodeUrl}").withQuery(Query(
+        "q" -> s"${Constants.SearchKeyWords.mkString(" ")} in:file size:<${Constants.GitHubFileMaxSize}",
+        "sort" -> Constants.GitHubSortByLatestIndexed,
+        "order" -> "desc",
+        "per_page" -> "10",
+        "page" -> "1"
+      )),
+      headers = Seq(
+        Accept(MediaRange.custom(Constants.GitHubAcceptHeaderValue)),
+        Authorization(BasicHttpCredentials(Configs.GitHibUsername, Configs.GitHubAccessToken))
+      )
+    )
   }
 }

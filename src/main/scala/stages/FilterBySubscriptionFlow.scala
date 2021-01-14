@@ -7,7 +7,9 @@ import dto.ExposedKeyData
 object FilterBySubscriptionFlow {
   def apply(): Flow[(String, ExposedKeyData), ExposedKeyData, NotUsed] = {
     Flow[(String, ExposedKeyData)]
-      .filter(t => t._2.service == t._1)
+      // here should be filtering
+      //.filter(t => t._2.service == t._1)
+      .filter(t => true)
       .map(_._2)
   }
 }

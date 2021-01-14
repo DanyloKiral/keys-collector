@@ -7,8 +7,6 @@ import services.DataService
 object DataCollectorSink {
   def apply(): Sink[ExposedKeyData, Any] =
     Flow[ExposedKeyData]
-        // transform data for db insert here
         .map(data => data)
-        // todo: use Slick.sink
         .to(DataService.insertToDbSink())
 }
