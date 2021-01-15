@@ -15,4 +15,12 @@ class FileWithKeyData(item: GitHubApiSearchItem, file: GitHubApiFile) {
   }
 }
 
-case class ExposedKeyData(fileName: String, filePath: String, sha: String, repo_full_name: String, repo_html_url: String)
+case class ExposedKeyData(file_name: String,
+                          key: String,
+                          service: String,
+                          file_path: String,
+                          language: String,
+                          sha: String,
+                          repo_full_name: String,
+                          repo_html_url: String,
+                          repo_create_date: String)

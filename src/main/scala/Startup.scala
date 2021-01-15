@@ -12,7 +12,8 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import services.{DataService, GitHubIntegrationService}
+import constants.Configs
+import services.DataService
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.Try
@@ -74,7 +75,7 @@ object Startup extends App {
   }
 
   val serverSource: Source[Http.IncomingConnection, Future[Http.ServerBinding]] =
-    Http().newServerAt("localhost", 8080).connectionSource()
+    Http().newServerAt(Configs.HostDomain, Configs.HostPort).connectionSource()
 
   serverSource.runForeach { connection =>
     println("Accepted new connection from " + connection.remoteAddress)
