@@ -34,11 +34,15 @@ object DataService {
       drop table if exists key_collector.exposed_keys;
       create table key_collector.exposed_keys (
         id serial primary key,
-        fileName varchar(255),
-        filePath varchar(1000),
+        file_name varchar(255),
+        key varchar(255),
+        service varchar(50),
+        file_path varchar(1000),
+        language varchar(50),
         sha varchar(50),
         repo_full_name varchar(255),
-        repo_html_url varchar(500)
+        repo_html_url varchar(500),
+        repo_create_date varchar(50)
       );
 
       select 1
@@ -47,8 +51,24 @@ object DataService {
 
   def insertToDbSink(): Sink[ExposedKeyData, Any] = {
     Slick.sink((keyData: ExposedKeyData) => sql"""
-      insert into key_collector.exposed_keys (fileName, filePath, sha, repo_full_name, repo_html_url)
-      values (${keyData.fileName}, ${keyData.filePath}, ${keyData.sha}, ${keyData.repo_full_name}, ${keyData.repo_html_url})
+      insert into key_collector.exposed_keys (file_name,
+                                              key,
+                                              service,
+                                              file_path,
+                                              language,
+                                              sha,
+                                              repo_full_name,
+                                              repo_html_url,
+                                              repo_create_date)
+      values (${keyData.file_name},
+              ${keyData.key},
+              ${keyData.service},
+              ${keyData.file_path},
+              ${keyData.language},
+              ${keyData.sha},
+              ${keyData.repo_full_name},
+              ${keyData.repo_html_url},
+              ${keyData.repo_create_date})
     """.asUpdate)
   }
 

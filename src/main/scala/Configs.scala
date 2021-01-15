@@ -11,4 +11,7 @@ object Configs {
   val GitHubApiRoot: String = "https://api.github.com"
   val GitHibUsername: String = "blabla"
   val GitHubAccessToken: String = "blablabla"
+
+  val HostDomain = "localhost"
+  val HostPort = 8080
 }
