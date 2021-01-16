@@ -23,6 +23,7 @@ object KeySearchFlow {
       data._2.name,
       extractKey(data._1),
       searchServiceName(data),
+      data._2.html_url,
       data._2.path,
       getFileExtension(data._2.name),
       data._2.sha,
@@ -31,17 +32,17 @@ object KeySearchFlow {
       "created")
   }
 
-  def searchServiceName(data: (Regex.Match, FileWithKeyData)): String = {
+  def searchServiceName(data: (Regex.Match, FileWithKeyData)): Option[String] = {
     val foundServices = Constants.ServiceDetectionRegex.findAllIn(data._2.content).matchData.toList
 
     if (foundServices.isEmpty) {
-      return null
+      return None
     }
 
     val keyLocation = matchLocation(data._1)
     val closestServiceMatch = foundServices.minBy(s => Math.abs(keyLocation - matchLocation(s)))
 
-    closestServiceMatch.group(0)
+    Option(closestServiceMatch.group(0))
   }
 
   def searchForSecret(data: FileWithKeyData): List[Regex.Match] = {

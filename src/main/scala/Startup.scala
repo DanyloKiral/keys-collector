@@ -14,6 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import constants.Configs
 import services.DataService
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.Try
@@ -25,6 +27,8 @@ object Startup extends App {
   // todo: setup max requests per second?
   implicit val httpPool = Http().superPool[NotUsed]()
   implicit val mapper: ObjectMapper = new ObjectMapper().registerModule(DefaultScalaModule)
+
+  httpPool.backpressureTimeout(10 second)
 
   system.registerOnTermination(() => {
     println("Terminating actor system")

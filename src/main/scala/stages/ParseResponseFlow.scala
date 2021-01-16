@@ -13,16 +13,17 @@ import org.json4s.jackson.JsonMethods._
 object ParseResponseFlow {
   implicit val formats = DefaultFormats
 
-  def apply[T](parallelism: Int = 2)(implicit system: ActorSystem, manifest: Manifest[T]): Flow[Try[HttpResponse], T, NotUsed] = {
+  def apply[T](parallelism: Int = 5)(implicit system: ActorSystem, manifest: Manifest[T]): Flow[Try[HttpResponse], T, NotUsed] = {
     Flow[Try[HttpResponse]]
       .map {
-        case Success(r) => r
+        case Success(r) => Option(r)
         case _ => {
           println("Failure")
-          null
+          None
         }
       }
-      .filter(_ != null)
+      .filter(_.nonEmpty)
+      .map(_.get)
       .mapAsync(parallelism)(r => Unmarshal(r).to[String])
       .map(r => parse(r).extract[T])
   }
