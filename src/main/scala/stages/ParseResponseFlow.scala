@@ -9,6 +9,7 @@ import scala.util.{Success, Try}
 import scala.language.postfixOps
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
+import akka.util._
 
 object ParseResponseFlow {
   implicit val formats = DefaultFormats
@@ -24,7 +25,10 @@ object ParseResponseFlow {
       }
       .filter(_.nonEmpty)
       .map(_.get)
-      .mapAsync(parallelism)(r => Unmarshal(r).to[String])
+      .mapAsync(parallelism)(_.entity.dataBytes
+        .runReduce(_ ++ _)
+        .map(_.toArray)(system.dispatcher))
+      .map(_.map(_.toChar).mkString(""))
       .map(r => parse(r).extract[T])
   }
 }

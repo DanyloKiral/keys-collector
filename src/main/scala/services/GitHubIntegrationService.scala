@@ -13,7 +13,7 @@ object GitHubIntegrationService {
         "q" -> s"${Constants.SearchKeyWords.mkString(" ")} in:file size:<${Constants.GitHubFileMaxSize}",
         "sort" -> Constants.GitHubSortByLatestIndexed,
         //"order" -> "desc",
-        "per_page" -> "20",//"10",
+        "per_page" -> "25",//"10",
       )),
       headers = Seq(
         Accept(MediaRange.custom(Constants.GitHubAcceptHeaderValue)),

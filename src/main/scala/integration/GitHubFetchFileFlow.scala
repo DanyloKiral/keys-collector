@@ -5,6 +5,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{Accept, Authorization, BasicHttpCredentials}
+import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{Flow, Source}
 import com.fasterxml.jackson.databind.ObjectMapper
 import constants.{Configs, Constants}
@@ -23,7 +24,9 @@ object GitHubFetchFileFlow {
           Authorization(BasicHttpCredentials(Configs.GitHibUsername, Configs.GitHubAccessToken))
         )
       ), NotUsed))
+      .buffer(100, OverflowStrategy.dropNew)
       .via(httpPool)
+      .async
       .map(r => r._1)
   }
 }

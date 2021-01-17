@@ -1,4 +1,4 @@
-import akka.stream.{FlowShape, Materializer, SourceShape}
+import akka.stream.{FlowShape, Materializer, OverflowStrategy, SourceShape}
 import akka.stream.scaladsl._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
@@ -9,14 +9,14 @@ import akka.http.scaladsl.server.Directives._
 import GraphDSL.Implicits._
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import constants.Configs
 import services.DataService
+
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.Try
 
@@ -24,11 +24,10 @@ object Startup extends App {
   implicit val system = ActorSystem()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
   implicit val materializer: Materializer = Materializer(system)
-  // todo: setup max requests per second?
   implicit val httpPool = Http().superPool[NotUsed]()
   implicit val mapper: ObjectMapper = new ObjectMapper().registerModule(DefaultScalaModule)
 
-  httpPool.backpressureTimeout(10 second)
+  httpPool.buffer(100, OverflowStrategy.dropNew)
 
   system.registerOnTermination(() => {
     println("Terminating actor system")
@@ -41,8 +40,8 @@ object Startup extends App {
     val IN = graphBuilder.add(Broadcast[Try[HttpResponse]](1))
     val SEARCH_RESPONSE = graphBuilder.add(Broadcast[GitHubApiSearchItem](2))
     val FILE_DATA = graphBuilder.add(ZipWith[GitHubApiSearchItem, GitHubApiFile, FileWithKeyData]((i, f) => new FileWithKeyData(i, f)))
-    val ParseSearch = graphBuilder.add(ParseResponseFlow[GitHubApiSearchResponse](1))
-    val ParseFile = graphBuilder.add(ParseResponseFlow[GitHubApiFile]())
+    val ParseSearch = graphBuilder.add(ParseResponseFlow[GitHubApiSearchResponse]())
+    val ParseFile = graphBuilder.add(ParseResponseFlow[GitHubApiFile](15))
     val FlatMap = graphBuilder.add(FlatMapUniqueSearchResultFlow())
     val PARSED_DATA = graphBuilder.add(Broadcast[ExposedKeyData](2))
     val FetchFile = graphBuilder.add(GitHubFetchFileFlow())
@@ -73,7 +72,7 @@ object Startup extends App {
     IN ~> MessageToStringFlow() ~> DATA_WITH_SUBSCR.in0
                      dataStream ~> DATA_WITH_SUBSCR.in1
 
-    DATA_WITH_SUBSCR.out ~> FilterBySubscriptionFlow() ~> ConvertToMessageFlow() ~> OUT
+    DATA_WITH_SUBSCR.out ~> FilterBySubscriptionFlow() ~> ConvertToMessageFlow[ExposedKeyData]() ~> OUT
 
     FlowShape(IN.in, OUT.out)
   }
@@ -91,6 +90,10 @@ object Startup extends App {
           },
           path("stream") {
             handleWebSocketMessages(Flow.fromGraph(socketSubscriptionGraph))
+          },
+          path("analytics") {
+            handle(_ => DataService.getDataAnalyticsAsJson()
+              .map(data => HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`application/json`, data))))
           }
         )
       }

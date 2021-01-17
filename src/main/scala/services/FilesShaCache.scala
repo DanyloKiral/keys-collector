@@ -10,8 +10,6 @@ object FilesShaCache {
 
     if (wasProcessed) {
       println(s"Prevented duplicate. Sha = $sha")
-    } else {
-      println("New File!!!")
     }
 
     !wasProcessed
