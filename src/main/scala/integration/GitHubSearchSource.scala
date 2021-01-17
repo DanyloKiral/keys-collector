@@ -17,11 +17,11 @@ import scala.util.Try
 object GitHubSearchSource {
   def apply()(implicit httpPool: HttpPool): Source[Try[HttpResponse], Any] = {
     Source.tick(5 second, 30 second, None)
-      .map(t => {
+      .map(_ => {
         println("new request")
         (GitHubIntegrationService.formSearchHttpRequest, NotUsed)
       })
-      .via(httpPool).async
+      .via(httpPool)
       .map(r => r._1)
   }
 }

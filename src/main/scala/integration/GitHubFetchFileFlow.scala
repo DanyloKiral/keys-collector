@@ -1,22 +1,18 @@
 package integration
 
 import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.{Accept, Authorization, BasicHttpCredentials}
+import akka.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials}
 import akka.stream.OverflowStrategy
-import akka.stream.scaladsl.{Flow, Source}
-import com.fasterxml.jackson.databind.ObjectMapper
-import constants.{Configs, Constants}
+import akka.stream.scaladsl.Flow
+import constants.Configs
 import constants.Constants.HttpPool
-import dto.{FileWithKeyData, GitHubApiFile, GitHubApiSearchItem, GitHubApiSearchResponse}
-import stages.ParseResponseFlow
+import dto.GitHubApiSearchItem
 
 import scala.util.Try
 
 object GitHubFetchFileFlow {
-  def apply()(implicit httpPool: Flow[(HttpRequest, NotUsed), (Try[HttpResponse], NotUsed), NotUsed]): Flow[GitHubApiSearchItem, Try[HttpResponse], NotUsed] = {
+  def apply()(implicit httpPool: HttpPool): Flow[GitHubApiSearchItem, Try[HttpResponse], NotUsed] = {
     Flow[GitHubApiSearchItem]
       .map(i => (HttpRequest(
         uri = i.url,
@@ -26,7 +22,6 @@ object GitHubFetchFileFlow {
       ), NotUsed))
       .buffer(100, OverflowStrategy.dropNew)
       .via(httpPool)
-      .async
       .map(r => r._1)
   }
 }

@@ -7,6 +7,5 @@ import services.DataService
 object DataCollectorSink {
   def apply(): Sink[ExposedKeyData, Any] =
     Flow[ExposedKeyData]
-        .map(data => data)
         .to(DataService.insertToDbSink())
 }

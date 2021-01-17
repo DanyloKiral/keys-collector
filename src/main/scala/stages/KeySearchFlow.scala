@@ -10,7 +10,20 @@ import scala.util.matching.Regex
 object KeySearchFlow {
   def apply(): Flow[FileWithKeyData, ExposedKeyData, NotUsed] = {
     shallowSearch
-    //preciseSearch
+  }
+
+  def shallowSearch(): Flow[FileWithKeyData, ExposedKeyData, NotUsed] = {
+    Flow[FileWithKeyData]
+      .map(d => (d, searchForSecret(d)))
+      .async
+      .filter(_._2.size > 0)
+      .async
+      .mapConcat(d => d._2.distinctBy(m => extractKey(m)).zipAll(List[FileWithKeyData](), null, d._1))
+      .async
+      .filter(d => isKeyContainNoNoWords(d._1))
+      .async
+      .map(d => createExposedKeyObject(d))
+      .async
   }
 
   def preciseSearch(): Flow[FileWithKeyData, ExposedKeyData, NotUsed] = {
@@ -38,20 +51,6 @@ object KeySearchFlow {
       .mapConcat(list => list)
   }
 
-  def shallowSearch(): Flow[FileWithKeyData, ExposedKeyData, NotUsed] = {
-    Flow[FileWithKeyData]
-      .map(d => (d, searchForSecret(d)))
-      .async
-      .filter(_._2.size > 0)
-      .async
-      .mapConcat(d => d._2.distinctBy(m => extractKey(m)).zipAll(List[FileWithKeyData](), null, d._1))
-      .async
-      .filter(d => isKeyContainNoNoWords(d._1))
-      .async
-      .map(d => createExposedKeyObject(d))
-      .async
-  }
-
   def createExposedKeyObject(data: ((String, String, Regex), FileWithKeyData, List[Regex.Match])): List[ExposedKeyData] = {
     if (data._3.size > 1) {
       println("Multiple matches!")
@@ -69,9 +68,10 @@ object KeySearchFlow {
           data._2.path,
           getFileExtension(data._2.name),
           data._2.sha,
+          data._2.repo.url,
           data._2.repo.full_name,
           data._2.repo.html_url,
-          "created")
+          None)
     })
   }
 
@@ -84,9 +84,10 @@ object KeySearchFlow {
       data._2.path,
       getFileExtension(data._2.name),
       data._2.sha,
+      data._2.repo.url,
       data._2.repo.full_name,
       data._2.repo.html_url,
-      "created")
+      None)
   }
 
   def searchServiceNames(data: FileWithKeyData): List[String] = {

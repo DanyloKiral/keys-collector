@@ -3,13 +3,11 @@ package stages
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.scaladsl.Flow
 import scala.util.{Success, Try}
 import scala.language.postfixOps
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import akka.util._
 
 object ParseResponseFlow {
   implicit val formats = DefaultFormats
