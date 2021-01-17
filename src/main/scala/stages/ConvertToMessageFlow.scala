@@ -7,8 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import dto.ExposedKeyData
 
 object ConvertToMessageFlow {
-  def apply()(implicit mapper: ObjectMapper): Flow[ExposedKeyData, TextMessage, NotUsed] = {
-    Flow[ExposedKeyData]
+  def apply[T]()(implicit mapper: ObjectMapper): Flow[T, TextMessage, NotUsed] = {
+    Flow[T]
       .map(mapper.writeValueAsString(_))
       .map(TextMessage(_))
   }

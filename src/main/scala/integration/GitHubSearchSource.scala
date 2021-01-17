@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Source}
 import constants.Constants.HttpPool
-import services.GitHubIntegrationService
+import services.{FilesShaCache, GitHubIntegrationService}
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
@@ -16,8 +16,12 @@ import scala.util.Try
 
 object GitHubSearchSource {
   def apply()(implicit httpPool: HttpPool): Source[Try[HttpResponse], Any] = {
-    Source.tick(5 second, 10 second, (GitHubIntegrationService.formSearchHttpRequest, NotUsed))
-      .via(httpPool)
+    Source.tick(5 second, 30 second, None)
+      .map(t => {
+        println("new request")
+        (GitHubIntegrationService.formSearchHttpRequest, NotUsed)
+      })
+      .via(httpPool).async
       .map(r => r._1)
   }
 }
