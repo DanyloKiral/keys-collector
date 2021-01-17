@@ -1,5 +1,8 @@
 package services
 
+
+import java.time.LocalDateTime
+
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.ws.TextMessage
 import akka.stream.Materializer
@@ -9,7 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.config.ConfigFactory
 import constants.Configs
 import dto.{DataAnalytics, ExposedKeyData, LanguageExposedKeyStatistics}
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, PositionedParameters, SetParameter}
 
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
@@ -31,7 +34,7 @@ object DataService {
         }"""))
   import session.profile.api._
 
-  implicit val getUserResult: GetResult[LanguageExposedKeyStatistics] = GetResult[LanguageExposedKeyStatistics](r =>
+  implicit val getStatResult: GetResult[LanguageExposedKeyStatistics] = GetResult[LanguageExposedKeyStatistics](r =>
     LanguageExposedKeyStatistics(r.nextString, r.nextInt, r.nextFloat))
 
   def initialize()(implicit materializer: Materializer): Unit = {
@@ -48,7 +51,8 @@ object DataService {
         sha varchar(50),
         repo_full_name varchar(255),
         repo_html_url varchar(500),
-        repo_create_date varchar(50)
+        repo_create_date timestamp,
+        created_date timestamp
       );
       DROP View IF EXISTS key_collector.Vw_exposed_keys;
       Create view key_collector.Vw_exposed_keys As
@@ -84,7 +88,8 @@ object DataService {
                                               sha,
                                               repo_full_name,
                                               repo_html_url,
-                                              repo_create_date)
+                                              repo_create_date,
+                                              created_date)
       values (${keyData.file_name},
               ${keyData.key},
               ${keyData.service.getOrElse("null")},
@@ -94,7 +99,8 @@ object DataService {
               ${keyData.sha},
               ${keyData.repo_full_name},
               ${keyData.repo_html_url},
-              ${keyData.repo_create_date})
+              null,
+              NOW())
     """.asUpdate)
   }
 

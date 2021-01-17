@@ -7,20 +7,18 @@ import constants.{Configs, Constants}
 
 object GitHubIntegrationService {
   def formSearchHttpRequest(): HttpRequest = {
-    val r = HttpRequest(
+    HttpRequest(
       method = HttpMethods.GET,
       uri = Uri(s"${Configs.GitHubApiRoot}/${Constants.GitHubSearchCodeUrl}").withQuery(Query(
         "q" -> s"${Constants.SearchKeyWords.mkString(" ")} in:file size:<${Constants.GitHubFileMaxSize}",
         "sort" -> Constants.GitHubSortByLatestIndexed,
-        //"order" -> "desc",
-        "per_page" -> "25",//"10",
+        "order" -> "desc",
+        "per_page" -> "25"
       )),
       headers = Seq(
         Accept(MediaRange.custom(Constants.GitHubAcceptHeaderValue)),
         Authorization(BasicHttpCredentials(Configs.GitHibUsername, Configs.GitHubAccessToken))
       )
     )
-
-    r
   }
 }

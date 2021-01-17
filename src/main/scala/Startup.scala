@@ -1,4 +1,4 @@
-import akka.stream.{FlowShape, Materializer, OverflowStrategy, SourceShape}
+import akka.stream.{FlowShape, Materializer, OverflowStrategy}
 import akka.stream.scaladsl._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
@@ -41,12 +41,11 @@ object Startup extends App {
     val SEARCH_RESPONSE = graphBuilder.add(Broadcast[GitHubApiSearchItem](2))
     val FILE_DATA = graphBuilder.add(ZipWith[GitHubApiSearchItem, GitHubApiFile, FileWithKeyData]((i, f) => new FileWithKeyData(i, f)))
     val ParseSearch = graphBuilder.add(ParseResponseFlow[GitHubApiSearchResponse]())
-    val ParseFile = graphBuilder.add(ParseResponseFlow[GitHubApiFile](15))
+    val ParseFile = graphBuilder.add(ParseResponseFlow[GitHubApiFile](8))
     val FlatMap = graphBuilder.add(FlatMapUniqueSearchResultFlow())
     val PARSED_DATA = graphBuilder.add(Broadcast[ExposedKeyData](2))
     val FetchFile = graphBuilder.add(GitHubFetchFileFlow())
     val OUT = graphBuilder.add(Merge[ExposedKeyData](1))
-
 
     IN ~> ParseSearch ~> FlatMap ~> SEARCH_RESPONSE ~>                           FILE_DATA.in0
                                     SEARCH_RESPONSE ~> FetchFile ~> ParseFile ~> FILE_DATA.in1
@@ -63,8 +62,7 @@ object Startup extends App {
     .toMat(BroadcastHub.sink)(Keep.right)
     .run
 
-    val socketSubscriptionGraph = GraphDSL.create[FlowShape[Message, TextMessage]]() { implicit graphBuilder =>
-    import GraphDSL.Implicits._
+  val socketSubscriptionGraph = GraphDSL.create[FlowShape[Message, TextMessage]]() { implicit graphBuilder =>
     val IN = graphBuilder.add(Broadcast[Message](1))
     val DATA_WITH_SUBSCR = graphBuilder.add(ZipLatest[String, ExposedKeyData]())
     val OUT = graphBuilder.add(Merge[TextMessage](1))

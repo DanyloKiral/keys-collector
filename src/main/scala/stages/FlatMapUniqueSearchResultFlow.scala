@@ -1,7 +1,7 @@
 package stages
 
 import akka.NotUsed
-import akka.stream.scaladsl.{Flow, Source}
+import akka.stream.scaladsl.Flow
 import dto.{GitHubApiSearchItem, GitHubApiSearchResponse}
 import services.FilesShaCache
 
